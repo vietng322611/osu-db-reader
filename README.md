@@ -1,5 +1,5 @@
 # Osu!db reader
-  This is a beatmap downloader using osu!.db file in your osu! folder
+  This is a beatmap downloader using osu!.db file in your osu! folder  
   Pls note that osu!.db file structure may change in future versions, so this script may not working. But don't worry, nothing will happen to your game :)
 
 ## Requirements
