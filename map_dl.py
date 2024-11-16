@@ -4,6 +4,7 @@ from os.path import basename
 from pathlib import Path
 from reader import Beatmap, read_db
 from datetime import datetime
+from time import sleep
 
 import tempfile
 import requests
@@ -18,6 +19,8 @@ mirrors = {
 dled = []
 done = []
 failed = []
+limit_reached = False
+wait_time = 0
 
 def save_log():
     time = datetime.now().strftime("%d%m%Y")
@@ -29,13 +32,18 @@ def save_log():
         for i in failed: f.write(i + "\n")
 
 def start_downloader(bm: Beatmap, path: Path):
+    global limit_reached, wait_time
     success = False
     for m in mirrors:
+        if (limit_reached): pass
         url = mirrors[m].format(bm.set_id)
         print("Trying to download #{0} from {1}".format(bm.set_id, m))
 
         headers = {'User-Agent': 'Mozilla/5.0'}
         resp = requests.get(url, stream=True, headers=headers)
+        if (resp.headers["X-RateLimit-Remaining"] == 0):
+            limit_reached = True
+            wait_time = resp.headers["X-Retry_After"]
         if resp.status_code == 200:
             total = int(resp.headers.get('content-length', 0))
             name_osz = resp.headers.get("Content-Disposition").split("filename=")[1].strip('"')
@@ -86,6 +94,9 @@ def download(beatmaps: list[Beatmap], path, name: str):
         for bm in beatmaps:
             futures.append(executor.submit(start_downloader, bm, path))
         for future in futures:
+            if (limit_reached):
+                sleep(wait_time)
+                limit_reached = False
             future.result()
 
     print("\nFinished downloading!")
